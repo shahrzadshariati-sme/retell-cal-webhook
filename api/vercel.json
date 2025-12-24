@@ -1,0 +1,54 @@
+{
+  "functions": {
+    "api/**/*.js": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
+}
+```
+
+4. Click **"Commit changes"**
+5. Click **"Commit changes"** again
+
+---
+
+### **Step 7: Deploy to Vercel**
+**Platform: Vercel**
+
+1. Go to https://vercel.com/new
+2. Click **"Import"** next to your `retell-cal-webhook` repository
+3. Click **"Deploy"**
+4. Wait ~30 seconds for deployment
+5. You'll see **"Congratulations!"** with your project URL
+6. **COPY THE URL** (looks like: https://retell-cal-webhook.vercel.app)
+
+---
+
+### **Step 8: Add Cal.com API Key as Environment Variable**
+**Platform: Vercel**
+
+1. On the congratulations page, click **"Continue to Dashboard"**
+2. Click **"Settings"** tab
+3. Click **"Environment Variables"** in left sidebar
+4. Click **"Add New"**
+5. Fill in:
+   - **Key:** `CAL_API_KEY`
+   - **Value:** [YOUR CAL.COM API KEY FROM STEP 1]
+   - Check all three environments (Production, Preview, Development)
+6. Click **"Save"**
+7. Go back to **"Deployments"** tab
+8. Click the three dots on the latest deployment
+9. Click **"Redeploy"**
+10. Click **"Redeploy"** again to confirm
+
+---
+
+### **Step 9: Add Custom Function in Retell**
+**Platform: Retell AI**
+
+(Same as Option A Step 11, but use this webhook URL instead):
+
+**Webhook URL:**
+```
+https://retell-cal-webhook.vercel.app/api/cancel
