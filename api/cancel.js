@@ -13,9 +13,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Search for bookings by email
+    // Search for ALL upcoming bookings first
     const searchResponse = await fetch(
-      `https://api.cal.com/v2/bookings?attendeeEmail=${encodeURIComponent(customer_email)}&status=upcoming`,
+      `https://api.cal.com/v2/bookings?status=upcoming`,
       {
         headers: {
           'Authorization': `Bearer ${process.env.CAL_API_KEY}`,
@@ -24,20 +24,39 @@ export default async function handler(req, res) {
       }
     );
 
+    if (!searchResponse.ok) {
+      const errorData = await searchResponse.json();
+      return res.status(searchResponse.status).json({
+        success: false,
+        message: `Cal.com API error: ${JSON.stringify(errorData)}`
+      });
+    }
+
     const searchData = await searchResponse.json();
 
     if (!searchData.data || searchData.data.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'No upcoming appointments found for this email'
+        message: 'No upcoming appointments found'
       });
     }
 
-    const booking = searchData.data[0];
+    // Filter bookings by email in our code (since API filter doesn't work)
+    const matchingBooking = searchData.data.find(booking => {
+      const attendeeEmail = booking.attendees?.[0]?.email || booking.responses?.email;
+      return attendeeEmail && attendeeEmail.toLowerCase() === customer_email.toLowerCase();
+    });
+
+    if (!matchingBooking) {
+      return res.status(404).json({
+        success: false,
+        message: `No upcoming appointment found for ${customer_email}`
+      });
+    }
 
     // Cancel the booking
     const cancelResponse = await fetch(
-      `https://api.cal.com/v2/bookings/${booking.uid}`,
+      `https://api.cal.com/v2/bookings/${matchingBooking.uid}`,
       {
         method: 'DELETE',
         headers: {
@@ -52,7 +71,11 @@ export default async function handler(req, res) {
     );
 
     if (!cancelResponse.ok) {
-      throw new Error('Failed to cancel booking');
+      const cancelError = await cancelResponse.json();
+      return res.status(cancelResponse.status).json({
+        success: false,
+        message: `Failed to cancel: ${JSON.stringify(cancelError)}`
+      });
     }
 
     return res.status(200).json({
@@ -64,7 +87,7 @@ export default async function handler(req, res) {
     console.error('Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to cancel appointment'
+      message: `Server error: ${error.message}`
     });
   }
 }
