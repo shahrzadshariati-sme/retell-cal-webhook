@@ -1,23 +1,21 @@
 export default async function handler(req, res) {
-  // Only accept POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { customer_phone, customer_name } = req.body;
+  const { customer_email } = req.body;
 
-  // Validate inputs - only phone is required now
-  if (!customer_phone) {
+  if (!customer_email) {
     return res.status(400).json({ 
       success: false, 
-      message: 'Phone number is required' 
+      message: 'Email is required' 
     });
   }
 
   try {
-    // 1. Search for bookings by phone number
+    // Search for bookings by email
     const searchResponse = await fetch(
-      `https://api.cal.com/v2/bookings?attendeePhoneNumber=${encodeURIComponent(customer_phone)}&status=upcoming`,
+      `https://api.cal.com/v2/bookings?attendeeEmail=${encodeURIComponent(customer_email)}&status=upcoming`,
       {
         headers: {
           'Authorization': `Bearer ${process.env.CAL_API_KEY}`,
@@ -31,14 +29,13 @@ export default async function handler(req, res) {
     if (!searchData.data || searchData.data.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'No upcoming appointments found for this phone number'
+        message: 'No upcoming appointments found for this email'
       });
     }
 
-    // 2. Get the first upcoming booking
     const booking = searchData.data[0];
 
-    // 3. Cancel the booking
+    // Cancel the booking
     const cancelResponse = await fetch(
       `https://api.cal.com/v2/bookings/${booking.uid}`,
       {
