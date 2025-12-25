@@ -128,7 +128,7 @@ export default async function handler(req, res) {
       console.log('ERROR: No upcoming appointments found in Cal.com');
       return res.status(404).json({
         success: false,
-        message: 'No upcoming appointments found'
+        message: 'No upcoming appointments found in your Cal.com account. Either all appointments are past/cancelled, or the API key may be for a different account.'
       });
     }
 
@@ -182,22 +182,28 @@ export default async function handler(req, res) {
       console.log('\nERROR: No matching booking found');
       console.log('Searched for:', customer_email);
       console.log('All bookings checked:', searchData.data.length);
-      console.log('All available emails in bookings:', searchData.data.map(b => ({
-        uid: b.uid,
-        emails: {
-          attendee: b.attendees?.[0]?.email,
-          response: b.responses?.email,
-          direct: b.email
-        }
-      })));
+      
+      // Collect all emails found in bookings for diagnostic purposes
+      const foundEmails = [];
+      searchData.data.forEach(b => {
+        const emails = [
+          b.attendees?.[0]?.email,
+          b.responses?.email,
+          b.email,
+          b.user?.email
+        ].filter(Boolean);
+        foundEmails.push(...emails);
+      });
+      
+      console.log('All available emails in bookings:', foundEmails);
       
       return res.status(404).json({
         success: false,
-        message: `No appointment found for ${customer_email}`,
+        message: `No appointment found for "${customer_email}". Cal.com has ${searchData.data.length} upcoming booking(s) with these emails: [${foundEmails.join(', ')}]. Check for typos or case sensitivity.`,
         debug: {
           searchedEmail: customer_email,
           totalBookings: searchData.data.length,
-          availableEmails: searchData.data.map(b => b.attendees?.[0]?.email || b.responses?.email || b.email)
+          foundEmails: foundEmails
         }
       });
     }
