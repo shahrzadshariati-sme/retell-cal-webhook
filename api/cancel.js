@@ -1,14 +1,20 @@
 export default async function handler(req, res) {
-  // Log everything for debugging
+  // Enhanced logging to see exactly what Retell sends
+  console.log('=== CANCEL APPOINTMENT DEBUG ===');
   console.log('Request method:', req.method);
-  console.log('Request body:', JSON.stringify(req.body));
-  console.log('Request headers:', JSON.stringify(req.headers));
+  console.log('Full request body:', JSON.stringify(req.body, null, 2));
+  console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+  console.log('================================');
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { customer_email } = req.body;
+  // Handle multiple possible parameter formats from Retell
+  const customer_email = req.body?.customer_email 
+    || req.body?.args?.customer_email 
+    || req.body?.parameters?.customer_email
+    || req.body?.argument?.customer_email;
 
   console.log('Extracted customer_email:', customer_email);
 
@@ -62,7 +68,7 @@ export default async function handler(req, res) {
       responsesEmail: b.responses?.email
     }))));
 
-    // Filter by email
+    // Filter by email (case-insensitive)
     const matchingBooking = searchData.data.find(booking => {
       const attendeeEmail = booking.attendees?.[0]?.email || booking.responses?.email;
       console.log('Comparing:', attendeeEmail, 'with', customer_email);
@@ -78,7 +84,7 @@ export default async function handler(req, res) {
 
     console.log('Found matching booking:', matchingBooking.uid);
 
-    // Cancel it
+    // Cancel the appointment
     const cancelResponse = await fetch(
       `https://api.cal.com/v2/bookings/${matchingBooking.uid}`,
       {
